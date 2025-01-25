@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XO Multiplayer</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/main/script.js"></script>
+    <link rel="stylesheet" href="/main/style.css">
+</head>
+<body>
+    <h1>XO Game By IzukiNo</h1>
+    <div class="overlay" id="overlay"></div>
+
+    <div class="popup" id="popup">
+        <h2>Vui lòng nhập tên của bạn</h2>
+        <input type="text" id="name" placeholder="Tên của bạn">
+        <button onclick="submitName()">Xác nhận</button>
+    </div>
+    <button id="create-room-btn" onclick="createRoom()">Create Room</button>
+    <div class="room-list-container" id="room-list-container">
+        <div class="no-room" id="no-room"></div>
+    </div>
+</body>
+</html>

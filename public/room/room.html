@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Room</title>
+    <link rel="stylesheet" href="/room/roomStyle.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="room-container">
+        <h1>Phòng Trò Chơi</h1>
+        <div class="players-list">
+            <h2>Danh sách người chơi</h2>
+            <ul id="players">
+            </ul>
+        </div>
+        <button id="start-button" onclick="startGame()" disabled>Start</button>
+    </div>
+
+    <script src="room/roomScript.js"></script>
+</body>
+</html>

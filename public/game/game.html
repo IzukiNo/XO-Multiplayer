@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Tic Tac Toe</title>
+    <link rel="stylesheet" href="/game/gameStyle.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/game/gameScript.js"></script>
+</head>
+<body>
+    <div class="overlay" id="overlay">
+        <div class="popup" id="popup">
+            <div class="icon" id="icon"></div>
+            <h2 id="title"></h2>
+            <p id="message"></p>
+        </div>
+    </div>
+    <div class="gameMessage" id="gameMessage"></div>
+    <div class="game-container">
+        <div class="player-info">
+            <div class="player">
+                <h2 id="player1-name"></h2>
+                <h2 id="player1-player"></h2>
+                <p id="player1-score"></p>
+            </div>
+            <div class="player">
+                <h2 id="player2-name"></h2>
+                <h2 id="player2-player"></h2>
+                <p id="player2-score"></p>
+            </div>
+        </div>
+        <div class="board" id="board">
+        </div>
+    </div>
+</body>
+</html>
