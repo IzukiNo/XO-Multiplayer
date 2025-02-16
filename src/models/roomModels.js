@@ -1,7 +1,7 @@
 const RoomsData = {
   rooms: [],
   socketRooms: {},
-  socketGame: {},
+  socketGames: {},
 };
 
 module.exports = RoomsData;

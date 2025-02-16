@@ -6,6 +6,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-direction: column;
     height: 100vh;
     -webkit-user-select: none; /* Safari */
     -ms-user-select: none; /* IE 10 and IE 11 */
@@ -67,4 +68,16 @@ h1 {
 
 #start-button:hover:not(:disabled) {
     background-color: #45a049;
+}
+
+#leave-button {
+    margin-top: 50px;
+    background-color: #bb4a4a;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 10px 20px;
+    transition: background-color 0.3s ease;
 }

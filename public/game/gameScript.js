@@ -2,7 +2,7 @@ const socket = io();
 
 let currentPlayer = null;
 let yourPlayer = "X";
-let board = ["", "", "", "", "", "", "", "", ""];
+let board = Array(9).fill(null);
 
 let moveCount = -1;
 
@@ -21,6 +21,7 @@ function cellClick(index) {
     id: window.location.pathname.split("/")[1],
     index: index,
     player: yourPlayer,
+    userId: localStorage.getItem("userId"),
   };
   socket.emit("move", move);
 }
@@ -94,6 +95,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const name = localStorage.getItem("username");
   const roomId = window.location.pathname.split("/")[1];
 
+  console.log(roomId);
+
   socket.emit("register", name);
   socket.emit("join", roomId);
   socket.emit("game-data", roomId);
@@ -101,23 +104,43 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 socket.on("game-data", (room) => {
-  console.log("GAME DATA", room);
-  const firstPlayer = room.name;
+  console.log("Game data received");
+  console.log(room);
+  const messageElement = document.getElementById("gameMessage");
+  const firstPlayer = room.owner.name;
   yourPlayer = localStorage.getItem("username") === firstPlayer ? "X" : "O";
-  currentPlayer = room.currentPlayer;
 
-  document.getElementById("player1-name").innerText =
-    localStorage.getItem("username");
-  document.getElementById("player2-name").innerText = room.players.filter(
-    (player) => player !== localStorage.getItem("username")
-  )[0];
+  board = room.board;
+  currentPlayer = room.currentPlayer;
+  moveCount = room.moveCount;
+  messageElement.innerHTML = `<h1>Someone go first pls!!</h1>`;
+
+  try {
+    score.your = room.players.find(
+      (player) => player.name === localStorage.getItem("username")
+    ).score;
+    score.opp = room.players.find(
+      (player) => player.name !== localStorage.getItem("username")
+    ).score;
+
+    document.getElementById("player1-name").innerText =
+      localStorage.getItem("username");
+    document.getElementById("player2-name").innerText = room.players.find(
+      (player) => player.name !== localStorage.getItem("username")
+    ).name;
+  } catch (e) {
+    messageElement.innerHTML = `<h1>Your opponent has disconnected!</h1>`;
+    yourPlayer = null;
+  }
 
   document.getElementById("player1-player").innerText = yourPlayer;
   document.getElementById("player2-player").innerText =
     yourPlayer === "X" ? "O" : "X";
 
-  document.getElementById("player1-score").innerText = "Score: " + score.your;
-  document.getElementById("player2-score").innerText = "Score: " + score.opp;
+  document.getElementById("player1-score").innerText = "score: " + score.your;
+  document.getElementById("player2-score").innerText = "score: " + score.opp;
+
+  renderBoard();
 });
 
 socket.on("update", (data) => {
@@ -136,12 +159,10 @@ socket.on("update", (data) => {
     messageElement.innerHTML = `<h1>Opponent's turn</h1>`;
   }
 
-  moveCount++;
+  moveCount = data.moveCount;
 
   console.log("Update received");
-  console.log(moveCount);
 
-  console.log(data);
   board = data.board;
   renderBoard();
 });
@@ -150,16 +171,13 @@ socket.on("win", (player) => {
   console.log("CO TK WIN ROI");
 
   const messageElement = document.getElementById("gameMessage");
+  const userId = localStorage.getItem("userId");
 
   messageElement.innerHTML = `<h1>${
-    player.winner === yourPlayer ? "You win!" : "You lose!"
+    player.winner === userId ? "You win!" : "You lose!"
   }</h1>`;
 
-  score[player.winner === yourPlayer ? "your" : "opp"]++;
-
-  console.log(score);
-
-  showPopup(player.winner === yourPlayer ? "win" : "lose");
+  showPopup(player.winner === userId ? "win" : "lose");
 
   yourPlayer = null;
 
@@ -170,53 +188,7 @@ socket.on("win", (player) => {
 });
 
 socket.on("reset", (room) => {
-  moveCount = -1;
   board = room.board;
   renderBoard();
   socket.emit("game-data", room.id);
 });
-
-function showPopup(type) {
-  const overlay = document.getElementById("overlay");
-  const popup = document.getElementById("popup");
-  const icon = document.getElementById("icon");
-  const title = document.getElementById("title");
-  const message = document.getElementById("message");
-
-  // Xử lý kiểu popup
-  if (type === "win") {
-    popup.className = "popup win";
-    icon.textContent = "🎉";
-    title.textContent = "You Win!";
-    message.textContent = "Congratulations! You defeated your opponent.";
-  } else if (type === "lose") {
-    popup.className = "popup lose";
-    icon.textContent = "😢";
-    title.textContent = "You Lose!";
-    message.textContent = "Better luck next time. Keep practicing!";
-  } else if (type === "draw") {
-    popup.className = "popup draw";
-    icon.textContent = "🤝";
-    title.textContent = "It's a Draw!";
-    message.textContent = "Good game! No one wins this time.";
-  }
-
-  // Hiển thị popup với animation
-  overlay.classList.add("active");
-  popup.classList.add("active");
-
-  // Tự động ẩn popup sau 2 giây
-  setTimeout(() => {
-    hidePopup();
-  }, 2000);
-}
-
-// Hàm ẩn popup
-function hidePopup() {
-  const overlay = document.getElementById("overlay");
-  const popup = document.getElementById("popup");
-
-  // Ẩn popup
-  overlay.classList.remove("active");
-  popup.classList.remove("active");
-}

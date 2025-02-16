@@ -5,28 +5,23 @@ function generateRoomID() {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
 }
 
-// Tạo room mới
 exports.create = async (req, res) => {
   try {
     const roomId = generateRoomID();
-    const roomName = req.body.name;
-
-    if (!roomName) {
-      return res.status(400).send({ message: "Room name is required" });
-    }
-
-    const isRoomExist = roomsData.rooms.some((room) => room.name === roomName);
-    if (isRoomExist) {
-      return res.status(400).send({ message: "Room already exists" });
-    }
+    const owner = {
+      name: req.body.ownerName,
+      id: req.body.ownerId,
+    };
 
     const newRoom = {
       id: roomId,
-      name: roomName,
+      owner: owner,
+      moveCount: 0,
       isStarted: false,
       players: [],
-      board: ["", "", "", "", "", "", "", "", ""],
+      board: Array(9).fill(null),
       currentPlayer: null,
+      timeout: null,
     };
 
     roomsData.rooms.push(newRoom);
@@ -51,6 +46,7 @@ exports.join = async (req, res) => {
     }
 
     const memberName = req.body.username;
+    const memberId = req.body.userId;
 
     if (!memberName) {
       return res.status(400).send({ message: "Username is required" });
@@ -63,7 +59,13 @@ exports.join = async (req, res) => {
         .send({ message: "Member already exists in the room" });
     }
 
-    room.players.push(memberName);
+    const newMember = {
+      name: memberName,
+      id: memberId,
+      score: 0,
+    };
+
+    room.players.push(newMember);
 
     return res.status(200).json({
       message: "Member added successfully",
@@ -81,13 +83,21 @@ exports.join = async (req, res) => {
 
 exports.getRoom = async (req, res) => {
   const roomId = req.params.roomId;
-  const room = roomsData.rooms.find((room) => room.id === roomId);
 
-  if (!room) {
-    return res.status(404).send("Deo co room thang lon oi!");
+  try {
+    const room = roomsData.rooms.find((room) => room.id === roomId);
+
+    if (!room) {
+      return res.status(404).send({ message: "Deo co room tk lon oi!" });
+    }
+
+    res.sendFile(
+      path.join(__dirname, "..", "..", "public", "room", "room.html")
+    );
+  } catch (error) {
+    console.error("Error getting room:", error);
+    return res.status(500).send({ message: "Internal server error" });
   }
-
-  res.sendFile(path.join(__dirname, "..", "..", "public", "room", "room.html"));
 };
 
 exports.getMain = async (req, res) => {
@@ -97,5 +107,10 @@ exports.getMain = async (req, res) => {
 };
 
 exports.getRoomList = async (req, res) => {
-  res.json(roomsData.rooms);
+  const safeRoom = roomsData.rooms.map(({ timeout, players, ...room }) => ({
+    ...room,
+    players: players.map(({ timeout, ...player }) => player),
+  }));
+
+  res.json(safeRoom);
 };

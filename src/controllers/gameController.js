@@ -23,21 +23,24 @@ function checkWin(board, player) {
 
 module.exports.getGame = (req, res) => {
   const roomId = req.params.roomId;
-  const room = roomsData.rooms.some((room) => room.id === roomId);
-  if (!room) {
-    return res.status(404).send({ message: "Co room deo dau!" });
+
+  try {
+    const room = roomsData.rooms.find((room) => room.id === roomId);
+    if (!room) {
+      return res.status(404).send({ message: "co room deo dau ma` vo" });
+    }
+    res.sendFile(
+      path.join(__dirname, "..", "..", "public", "game", "game.html")
+    );
+  } catch (error) {
+    console.error("Error getting game:", error);
+    return res.status(500).send({ message: "Internal server error" });
   }
-  res.sendFile(path.join(__dirname, "..", "..", "public", "game", "game.html"));
 };
 
 module.exports.inGame = (socket, io) => {
   socket.on("start", (roomId) => {
     const room = roomsData.rooms.find((room) => room.id === roomId);
-    if (!room) {
-      socket.emit("error", "Room not found");
-      return;
-    }
-
     room.isStarted = true;
 
     io.to(roomId).emit("start", room);
@@ -47,27 +50,40 @@ module.exports.inGame = (socket, io) => {
 
   socket.on("game-data", (roomId) => {
     const room = roomsData.rooms.find((room) => room.id === roomId);
-    socket.emit("game-data", room);
-    socket.emit("update", room);
+    const safeRoom = {
+      ...room,
+      timeout: null,
+      players: room.players.map(({ timeout, ...player }) => player),
+    };
+
+    socket.emit("game-data", safeRoom);
   });
 
   socket.on("move", (move) => {
     const room = roomsData.rooms.find((room) => room.id === move.id);
-    if (!room) {
-      socket.emit("error", "Room not found");
+    if (room.moveCount === 10) {
+      io.to(move.id).emit("draw");
       return;
     }
 
     console.log(move);
     room.board[move.index] = move.player;
     room.currentPlayer = move.player === "X" ? "O" : "X";
+    room.moveCount += 1;
 
     if (checkWin(room.board, move.player)) {
       const winStatus = {
-        winner: move.player,
+        winner: move.userId,
         board: room.board,
         id: move.id,
       };
+
+      const winner = room.players.find((player) => player.id === move.userId);
+      winner.score += 1;
+
+      console.log(winner);
+      console.log(room.players);
+
       console.log(`Room ${move.id} win`);
       io.to(move.id).emit("win", winStatus);
       return;
@@ -80,35 +96,46 @@ module.exports.inGame = (socket, io) => {
     const room = roomsData.rooms.find((room) => room.id === roomId);
     room.board = Array(9).fill(null);
     room.currentPlayer = null;
+    room.moveCount = 0;
     console.log(`Room ${roomId} reset`);
     io.to(roomId).emit("reset", room);
   });
 
   socket.on("ingame", (roomId) => {
-    roomsData.socketGame[socket.id] = roomId;
+    const room = roomsData.rooms.find((room) => room.id === roomId);
+
+    roomsData.socketGames[socket.id] = room;
   });
 
   socket.on("disconnect", () => {
-    if (roomsData.socketGame[socket.id]) {
-      console.log("User " + socket.id + " disconnect while in game");
-      const room = roomsData.rooms.find(
-        (room) => room.id === roomsData.socketGame[socket.id]
-      );
-      if (room) {
-        roomsData.rooms.forEach((r) => {
-          if (r.id === room.id) {
-            r.players = r.players.filter(
-              (player) => player !== socket.username
-            );
+    const room = roomsData.socketGames[socket.id];
+    if (room) {
+      console.log(`User ${socket.username} disconnected while in game`);
+      delete roomsData.socketGames[socket.id];
+      roomsData.rooms.forEach((r) => {
+        if (r.id === room.id) {
+          const playerIndex = r.players.findIndex(
+            (player) => player.name === socket.username
+          );
+
+          if (playerIndex !== -1) {
+            const player = r.players[playerIndex];
+            player.timeout = setTimeout(() => {
+              r.players = r.players.filter(
+                (player) => player.name !== socket.username
+              );
+
+              if (room.players.length === 0) {
+                roomsData.rooms = roomsData.rooms.filter(
+                  (r) => r.id !== room.id
+                );
+                console.log(`Room ${room.id} removed while in game`);
+              }
+              console.log(`User ${socket.username} removed from room ${r.id}`);
+            }, 5000);
           }
-        });
-        if (room.players.length === 0) {
-          roomsData.rooms = roomsData.rooms.filter((r) => r.id !== room.id);
-          console.log(`Room ${room.id} removed while in game`);
-          return;
         }
-        io.to(room.id).emit("leave", room);
-      }
+      });
     }
   });
 };

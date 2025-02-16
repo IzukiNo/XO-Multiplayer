@@ -6,7 +6,7 @@ function displayPlayers(players) {
 
   players.forEach((player) => {
     const li = document.createElement("li");
-    li.textContent = player;
+    li.textContent = player.name;
     playersList.appendChild(li);
   });
 
@@ -20,6 +20,12 @@ function startGame() {
   socket.emit("start", roomId);
 }
 
+function leaveRoom() {
+  window.location.href = "/";
+  localStorage.removeItem("username");
+  localStorage.removeItem("userId");
+}
+
 function joinRoom() {
   const roomId = window.location.pathname.split("/")[1];
 
@@ -28,6 +34,7 @@ function joinRoom() {
 
 document.addEventListener("DOMContentLoaded", () => {
   const username = localStorage.getItem("username");
+  const userId = localStorage.getItem("userId");
   const roomId = window.location.pathname.split("/")[1];
   socket.emit("register", username);
   joinRoom();
@@ -35,7 +42,6 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = "/";
     return;
   }
-  socket.emit("data", roomId);
   fetch(`/${roomId}`, {
     method: "PUT",
     headers: {
@@ -43,6 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     body: JSON.stringify({
       username: username,
+      userId: userId,
     }),
   })
     .then((response) => response.json())
@@ -63,8 +70,4 @@ socket.on("leave", (room) => {
 socket.on("start", () => {
   const roomId = window.location.pathname.split("/")[1];
   window.location.href = `/${roomId}/game`;
-});
-
-socket.on("data", (data) => {
-  console.log(data);
 });
